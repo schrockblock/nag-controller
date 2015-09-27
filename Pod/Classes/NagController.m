@@ -15,7 +15,6 @@
 
 @end
 
-static NSString * const LastNaggedKey = @"lastNagged";
 static NSString * const ShouldNagRatingKey = @"should_nag_rating";
 static NSString * const ShouldNagAppKey = @"should_nag_app";
 static int const AffirmativeIndex = 1;
@@ -32,6 +31,16 @@ static int const NeverIndex = 2;
         self.ratingMessage = @"...but would you mind terribly taking a moment to rate this app?";
         self.upgradeTitle = @"Hey!";
         self.upgradeMessage = @"You seem to be enjoying the app, would you like to help support an independent app developer and download the paid version?";
+        
+        self.upgradeCancelButtonTitle = @"Mmm, maybe later";
+        self.upgradeYesButtonTitle = @"Yes, I'd be delighted!";
+        self.upgradeNoButtonTitle = @"I prefer clicking on ads to support you";
+        
+        self.ratingCancelButtonTitle = @"I already have!";
+        self.ratingYesButtonTitle = @"Yes, I'd be delighted!";
+        self.ratingNoButtonTitle = @"Nope, I will never rate your app";
+        self.ratingLaterButtonTitle = @"Mmm, not right now";
+        
         self.nagDelaySeconds = 17;
     }
     return self;
@@ -40,33 +49,26 @@ static int const NeverIndex = 2;
 
 - (void)startNag
 {
-    int appOpens = (int)[[NSUserDefaults standardUserDefaults] integerForKey:@"numberOfAppOpens"];
-    if (appOpens % 3 == 0) {
-        if (![self lastNagged] || [[self lastNagged] isBefore:[[NSDate date] incrementUnit:NSCalendarUnitDay by:-2]]) {
-            if ([self canNagRating]) {
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.nagDelaySeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    self.isRatingNag = YES;
-                    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:self.ratingTitle
-                                                                    message:self.ratingMessage
-                                                                   delegate:self
-                                                          cancelButtonTitle:@"I already have!"
-                                                          otherButtonTitles:@"Yes, I'd be delighted!",@"Nope, I will never rate your app",@"Mmm, not right now",nil];
-                    [alert show];
-                    [[NSUserDefaults standardUserDefaults] setObject:[NSDate date] forKey:LastNaggedKey];
-                });
-            }else if ([self canNagApp]){
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.nagDelaySeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    self.isRatingNag = NO;
-                    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:self.upgradeTitle
-                                                                    message:self.upgradeMessage
-                                                                   delegate:self
-                                                          cancelButtonTitle:@"Mmm, maybe later"
-                                                          otherButtonTitles:@"Yes, I'd be delighted!",@"I prefer clicking on ads to support you",nil];
-                    [alert show];
-                    [[NSUserDefaults standardUserDefaults] setObject:[NSDate date] forKey:LastNaggedKey];
-                });
-            }
-        }
+    if ([self canNagRating]) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.nagDelaySeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self.isRatingNag = YES;
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:self.ratingTitle
+                                                            message:self.ratingMessage
+                                                           delegate:self
+                                                  cancelButtonTitle:self.ratingCancelButtonTitle
+                                                  otherButtonTitles:self.ratingYesButtonTitle,self.ratingNoButtonTitle,self.ratingLaterButtonTitle,nil];
+            [alert show];
+        });
+    }else if ([self canNagApp]){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.nagDelaySeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self.isRatingNag = NO;
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:self.upgradeTitle
+                                                            message:self.upgradeMessage
+                                                           delegate:self
+                                                  cancelButtonTitle:self.upgradeCancelButtonTitle
+                                                  otherButtonTitles:self.upgradeYesButtonTitle,self.upgradeNoButtonTitle,nil];
+            [alert show];
+        });
     }
 }
 
@@ -92,11 +94,6 @@ static int const NeverIndex = 2;
         result = [[NSUserDefaults standardUserDefaults] boolForKey:ShouldNagAppKey];
     }
     return result;
-}
-
-- (NSDate *)lastNagged
-{
-    return [[NSUserDefaults standardUserDefaults] objectForKey:LastNaggedKey];
 }
 
 #pragma mark - alertView delegate
